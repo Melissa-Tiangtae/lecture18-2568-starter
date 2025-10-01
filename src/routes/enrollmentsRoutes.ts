@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from "express";
 import {
   zCourseId,
-  zStudentId
+  zStudentId,
+  zEnrollmentBody
 } from "../libs/zodValidators.js";
 
 import type { Student, Enrollment, CustomRequest } from "../libs/types.js";
@@ -100,9 +101,20 @@ router.get(
 router.post("/:studentId", authenticateToken, checkRoles, (req: CustomRequest, res: Response) => {
   try {
     const studentId = zStudentId.parse(req.params.studentId);
+   // const body = req.body as Enrollment;
     const courseId = zCourseId.parse(req.body.courseId);
     const user = (req as CustomRequest).user;
 
+    //  const result = zEnrollmentBody.safeParse(req.body); // check zod
+    // if (!result.success) {
+    //   return res.status(400).json({
+    //     message: "Validation failed",
+    //     errors: result.error.issues[0]?.message,
+    //   });
+      
+    // }
+
+// ตรรกะ: บล็อก ADMIN และ STUDENT ที่ทำรายการให้คนอื่น
     if (user?.role === "ADMIN" || (user?.role === "STUDENT" && user?.studentId !== studentId)) {
       return res.status(403).json({
         success: false,
@@ -145,14 +157,36 @@ router.delete("/DELETE", authenticateToken, checkRoles, (req: CustomRequest, res
     const courseId = zCourseId.parse(req.body.courseId);
     const user = (req as CustomRequest).user;
 
-    if(user?.role === "ADMIN")
+        if (user?.role === "ADMIN" || (user?.role === "STUDENT" && user?.studentId !== studentId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to modify another student's data",
+      });
+    }
 
+    const Enindex = enrollments.findIndex(thisen => thisen.studentId === studentId && thisen.courseId === courseId);
+    if (Enindex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Enrollment does not exist",
+      });
+    }
 
-  }catch(err){
+    enrollments.splice(Enindex, 1);
 
+    return res.status(200).json({
+      success: true,
+      message: `Student ${studentId} & Course ${courseId} has been deleted successfully`,
+      data: { studentId, courseId },
+    });
 
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: err,
+    });
   }
-
 });
 
 
