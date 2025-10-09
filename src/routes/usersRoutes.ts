@@ -125,7 +125,7 @@ router.post("/login", (req: Request, res: Response) => {
   }
 
   // 3. create JWT token (with user info object as payload) using JWT_SECRET_KEY ก็คือเอายูเซอร์มาทำโทเคน
-    const jwt_secret = process.env.JWT_SECRET || "forgot_secret";
+    const jwt_secret = process.env.JWT_SECRET || "this_is_my_secret";
     const token = jwt.sign({
         //add JWT payload
         username: user.username,
@@ -177,6 +177,70 @@ router.post("/logout", (req: Request, res: Response) => {
 
   // 5. proceed with logout process and return HTTP response
   //    (optional: remove the token from User data)
+
+  // POST /api/v2/users/logout
+router.post("/logout", (req: Request, res: Response) => {
+  try {
+    // 1. check Request if "authorization" header exists
+    //    and contains "Bearer ...JWT-Token..."
+    const authHeader = req.headers["authorization"];
+    
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization header is not found"
+      });
+    }
+
+    // 2. extract the "...JWT-Token..." if available
+    const token = authHeader.split(" ")[1];
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token is required"
+      });
+    }
+
+    // 3. verify token using JWT_SECRET_KEY and get payload (username, studentId and role)
+    const jwt_secret = process.env.JWT_SECRET || "forgot_secret";
+    
+    jwt.verify(token, jwt_secret, (err, payload) => {
+      if (err) {
+        return res.status(403).json({
+          success: false,
+          message: "Invalid or expired token"
+        });
+      }
+
+      // 4. check if user exists (search with username)
+      const user = users.find(
+        (u: User) => u.username === (payload as UserPayload).username
+      );
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      // 5. proceed with logout process and return HTTP response
+      //    (optional: remove the token from User data)
+      return res.status(200).json({
+        success: true,
+        message: "Logout successful"
+      });
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: err
+    });
+  }
+});
 
   return res.status(500).json({
     success: false,
