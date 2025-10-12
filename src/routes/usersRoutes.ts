@@ -203,7 +203,7 @@ router.post("/logout", (req: Request, res: Response) => {
     }
 
     // 3. verify token using JWT_SECRET_KEY and get payload (username, studentId and role)
-    const jwt_secret = process.env.JWT_SECRET || "forgot_secret";
+    const jwt_secret = process.env.JWT_SECRET || "this_is_my_secret";
     
     jwt.verify(token, jwt_secret, (err, payload) => {
       if (err) {
